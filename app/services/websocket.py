@@ -122,7 +122,7 @@ class WebSocketListener:
             cache_status = "new"
             
             # Check if we have this data cached already
-            cached_items = data_cache.search("data", data)
+            cached_items = data_cache.search_exact_data(data)
             
             if cached_items:
                 # Found in cache - check if recent enough

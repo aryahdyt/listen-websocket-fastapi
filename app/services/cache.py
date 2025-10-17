@@ -244,6 +244,48 @@ class DataCache:
                     })
             return results
     
+    def search_exact_data(self, data: Any) -> List[Dict]:
+        """
+        Search cache for items with exact data match (from Redis or fallback cache).
+        
+        Args:
+            data: Exact data to match
+            
+        Returns:
+            List of matching cache items
+        """
+        with self._lock:
+            # Try Redis first
+            if self._check_redis():
+                try:
+                    # Get all items and filter
+                    items = self._redis_client.zrange(self._redis_key, 0, -1)
+                    
+                    results = []
+                    for item in items:
+                        try:
+                            cache_item = json.loads(item)
+                            if cache_item["data"] == data:
+                                results.append(cache_item)
+                        except Exception:
+                            continue
+                    
+                    return results
+                except Exception as e:
+                    print(f"⚠️ Redis search_exact_data failed, falling back to memory: {e}")
+                    self._redis_available = False
+            
+            # Fallback to in-memory cache
+            results = []
+            for item in self._fallback_cache:
+                if item["data"] == data:
+                    results.append({
+                        "timestamp": item["timestamp"].isoformat(),
+                        "data": item["data"],
+                        "metadata": item["metadata"]
+                    })
+            return results
+    
     def get_stats(self) -> Dict:
         """
         Get cache statistics from Redis or fallback cache.
