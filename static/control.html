@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listener Control Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .indicator.active {
+            background-color: #4caf50;
+            animation: pulse 2s infinite;
+        }
+        
+        .indicator.inactive {
+            background-color: #f44336;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button.danger {
+            background: linear-gradient(135deg, #f44336 0%, #e91e63 100%);
+        }
+        
+        .log {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .log-entry {
+            padding: 5px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .success { color: #4caf50; }
+        .error { color: #f44336; }
+        .info { color: #2196f3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎛️ WebSocket Listener Control Panel</h1>
+        
+        <div class="card">
+            <h2>Listener Status</h2>
+            <div class="status">
+                <div>
+                    <span class="indicator inactive" id="statusIndicator"></span>
+                    <span id="statusText">Loading...</span>
+                </div>
+                <div id="connectionStatus">—</div>
+            </div>
+            
+            <div class="controls">
+                <button onclick="startListener()">▶️ Start</button>
+                <button onclick="stopListener()" class="danger">⏸️ Stop</button>
+                <button onclick="refreshStatus()">🔄 Refresh</button>
+                <button onclick="window.open('/monitor', '_blank')">📊 Monitor</button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Activity Log</h2>
+            <div class="log" id="activityLog">
+                <div class="log-entry info">System ready. Click "Refresh" to load status.</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('activityLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const time = new Date().toLocaleTimeString();
+            entry.textContent = `[${time}] ${message}`;
+            logDiv.insertBefore(entry, logDiv.firstChild);
+            
+            // Keep only last 50 entries
+            while (logDiv.children.length > 50) {
+                logDiv.removeChild(logDiv.lastChild);
+            }
+        }
+        
+        async function startListener() {
+            try {
+                const response = await fetch('/listener/start', { method: 'POST' });
+                const data = await response.json();
+                log(data.message, 'success');
+                await refreshStatus();
+            } catch (error) {
+                log(`Error starting listener: ${error.message}`, 'error');
+            }
+        }
+        
+        async function stopListener() {
+            try {
+                const response = await fetch('/listener/stop', { method: 'POST' });
+                const data = await response.json();
+                log(data.message, 'success');
+                await refreshStatus();
+            } catch (error) {
+                log(`Error stopping listener: ${error.message}`, 'error');
+            }
+        }
+        
+        async function refreshStatus() {
+            try {
+                const response = await fetch('/listener/status');
+                const data = await response.json();
+                
+                // Update status indicator
+                const indicator = document.getElementById('statusIndicator');
+                const statusText = document.getElementById('statusText');
+                const connectionStatus = document.getElementById('connectionStatus');
+                
+                if (data.is_active) {
+                    indicator.className = 'indicator active';
+                    statusText.textContent = 'Listener Active';
+                } else {
+                    indicator.className = 'indicator inactive';
+                    statusText.textContent = 'Listener Stopped';
+                }
+                
+                connectionStatus.textContent = data.connection_status;
+                
+                log('Status refreshed', 'info');
+                
+            } catch (error) {
+                log(`Error refreshing status: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-refresh every 10 seconds
+        setInterval(refreshStatus, 10000);
+        
+        // Initial load
+        refreshStatus();
+    </script>
+</body>
+</html>
