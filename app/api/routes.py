@@ -3,12 +3,21 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, HTMLResponse
 from datetime import datetime
+import json
 
-from app.models.schemas import QueryRequest, QueryResponse, HealthResponse
+from app.models.schemas import (
+    QueryRequest, 
+    QueryResponse, 
+    HealthResponse,
+    MatchingRequest,
+    MatchingResponse
+)
 from app.services.clickhouse import clickhouse_service
 from app.services.websocket import websocket_listener
 from app.services.cache import data_cache
 from app.core.config import settings
+
+from app.controllers.matching_controller import matching_controller
 
 router = APIRouter()
 
@@ -24,14 +33,14 @@ async def root():
         "endpoints": {
             "health": "/health",
             "query": "/query",
-            "websocket": "/ws",
             "monitor_ui": "/monitor",
             "cache_stats": "/cache/stats",
             "cache_recent": "/cache/recent",
             "cache_clear": "/cache/clear",
             "listener_status": "/listener/status",
             "listener_start": "/listener/start",
-            "listener_stop": "/listener/stop"
+            "listener_stop": "/listener/stop",
+            "matching": "/matching"
         }
     }
 
@@ -121,6 +130,29 @@ async def stop_listener():
     """Stop WebSocket listener."""
     return websocket_listener.stop_listener()
 
+
+@router.post("/matching")
+async def process_matching_post(request: MatchingRequest):
+    """
+    Process AIS-ARPA matching with polygon filter (POST with body).
+    
+    Request Body:
+        {
+            "polygon": [[[lon, lat], [lon, lat], ...]],
+            "since_minutes": 60,
+            "ais_limit": 1000,
+            "arpa_limit": 1000
+        }
+    
+    Returns:
+        Matching results with matched pairs and statistics
+    """
+    return await matching_controller.process_matching(
+        polygon=request.polygon,
+        since_minutes=request.since_minutes,
+        ais_limit=request.ais_limit,
+        arpa_limit=request.arpa_limit
+    )
 
 @router.get("/monitor", response_class=HTMLResponse)
 async def monitoring_dashboard():

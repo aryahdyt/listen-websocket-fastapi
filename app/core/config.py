@@ -40,6 +40,31 @@ class Settings(BaseSettings):
     WEBSOCKET_RECONNECT_DELAY: int = int(os.getenv("WEBSOCKET_RECONNECT_DELAY", "5"))
     WEBSOCKET_AUTO_START: bool = os.getenv("WEBSOCKET_AUTO_START", "True").lower() == "true"
     
+    # Polling System Configuration
+    ENABLE_POLLING: bool = os.getenv("ENABLE_POLLING", "True").lower() == "true"
+    POLL_INTERVAL_S: float = float(os.getenv("POLL_INTERVAL_S", "1.0"))
+    BOOTSTRAP_MINUTES: int = int(os.getenv("BOOTSTRAP_MINUTES", "60"))
+    CACHE_TTL_S: int = int(os.getenv("CACHE_TTL_S", "3600"))
+    
+    # Site Location (for bbox calculation)
+    SITE_LAT: float = float(os.getenv("SITE_LAT", "-1.279656"))
+    SITE_LON: float = float(os.getenv("SITE_LON", "116.809655"))
+    FILTER_RADIUS_KM: float = float(os.getenv("FILTER_RADIUS_KM", "60.0"))
+    
+    # Projection
+    PROJECTION: str = os.getenv("PROJECTION", "EPSG:32650")
+    
+    # Matching Parameters
+    GATING_DISTANCE_M: float = float(os.getenv("GATING_DISTANCE_M", "8000.0"))
+    TIME_GATE_S: float = float(os.getenv("TIME_GATE_S", "1800.0"))
+    MATCH_THRESHOLD: float = float(os.getenv("MATCH_THRESHOLD", "0.6"))
+    
+    # Scoring Parameters
+    POS_SIGMA_M: float = float(os.getenv("POS_SIGMA_M", "500.0"))
+    SPD_SIGMA_MS: float = float(os.getenv("SPD_SIGMA_MS", "3.0"))
+    HDG_SIGMA_DEG: float = float(os.getenv("HDG_SIGMA_DEG", "40.0"))
+    TIME_SIGMA_S: float = float(os.getenv("TIME_SIGMA_S", "60.0"))
+    
     class Config:
         """Pydantic config."""
         case_sensitive = True

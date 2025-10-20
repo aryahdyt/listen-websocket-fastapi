@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Monitor - AIS↔ARPA Matching Visualizer</title>
+  <title>Advanced Monitor - AIS↔ARPA Matching Visualizer</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     * {
@@ -83,92 +83,6 @@
       margin-top: 8px;
       flex-wrap: wrap;
     }
-
-    .listener-panel {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid #ddd;
-    }
-
-    .listener-status, .cache-stats {
-      padding: 8px;
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 12px;
-    }
-
-    .listener-status h4, .cache-stats h4 {
-      font-size: 13px;
-      margin-bottom: 6px;
-      color: #555;
-    }
-
-    .listener-status .status-item, .cache-stats .stat-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 3px 0;
-      border-bottom: 1px solid #f0f0f0;
-    }
-
-    .listener-status .status-item:last-child, .cache-stats .stat-item:last-child {
-      border-bottom: none;
-    }
-
-    .listener-controls {
-      margin-top: 8px;
-      display: flex;
-      gap: 6px;
-    }
-
-    .listener-controls button {
-      flex: 1;
-      padding: 5px 8px;
-      font-size: 11px;
-    }
-
-    .log-section {
-      margin: 12px;
-      padding: 8px;
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-    }
-
-    .log-section h3 {
-      font-size: 14px;
-      margin-bottom: 8px;
-      color: #555;
-    }
-
-    .log-container {
-      max-height: 150px;
-      overflow-y: auto;
-      font-family: monospace;
-      font-size: 11px;
-      line-height: 1.4;
-      background: #f9f9f9;
-      border: 1px solid #ddd;
-      padding: 6px;
-      border-radius: 3px;
-    }
-
-    .log-entry {
-      padding: 2px 0;
-      border-bottom: 1px solid #eee;
-    }
-
-    .log-entry:last-child {
-      border-bottom: none;
-    }
-
-    .log-entry.info { color: #0066cc; }
-    .log-entry.success { color: #00aa00; }
-    .log-entry.warning { color: #ff9900; }
-    .log-entry.error { color: #cc0000; }
 
     main {
       display: grid;
@@ -273,7 +187,7 @@
 </head>
 <body>
   <header>
-    <h1>🎯 Monitor - AIS↔ARPA Matching Visualizer</h1>
+    <h1>🎯 Advanced Monitor - AIS↔ARPA Matching Visualizer</h1>
     <div class="controls">
       <label>WebSocket URL:
         <input id="ws-url" type="text" value="" />
@@ -283,52 +197,11 @@
       <span id="status">Disconnected</span>
     </div>
     <div class="meta">
+      <span id="site-info">Site: (n/a)</span>
+      <span id="gates-info">Gates: (n/a)</span>
       <span id="counts-info">Pairs: 0 | Unmatched ARPA: 0 | Unmatched AIS: 0</span>
     </div>
-    
-    <div class="listener-panel">
-      <div class="listener-status">
-        <h4>🎛️ Listener Status</h4>
-        <div class="status-item">
-          <span>Active:</span>
-          <strong id="listener-active">-</strong>
-        </div>
-        <div class="status-item">
-          <span>Running:</span>
-          <strong id="listener-running">-</strong>
-        </div>
-        <div class="status-item">
-          <span>Connection:</span>
-          <strong id="listener-connection">-</strong>
-        </div>
-        <div class="listener-controls">
-          <button id="start-listener-btn" onclick="startListener()">▶️ Start</button>
-          <button id="stop-listener-btn" onclick="stopListener()">⏸️ Stop</button>
-        </div>
-      </div>
-      
-      <div class="cache-stats">
-        <h4>💾 Cache Statistics</h4>
-        <div class="stat-item">
-          <span>AIS Records:</span>
-          <strong id="cache-ais">-</strong>
-        </div>
-        <div class="stat-item">
-          <span>ARPA Records:</span>
-          <strong id="cache-arpa">-</strong>
-        </div>
-        <div class="stat-item">
-          <span>Total:</span>
-          <strong id="cache-total">-</strong>
-        </div>
-      </div>
-    </div>
   </header>
-  
-  <div class="log-section">
-    <h3>📝 Event Log</h3>
-    <div class="log-container" id="log-container"></div>
-  </div>
 
   <main>
     <div class="viz-section">
@@ -482,6 +355,12 @@
       });
 
       function renderMeta(msg) {
+        const meta = msg.meta || {};
+        const site_lat = meta.site_lat;
+        const site_lon = meta.site_lon;
+        const proj = meta.projection;
+        siteInfoEl.textContent = `Site: (${site_lat?.toFixed?.(6)}, ${site_lon?.toFixed?.(6)}) proj=${proj}`;
+        gatesInfoEl.textContent = `Gates: d<=${meta.gating_distance_m}m, dt<=${meta.time_gate_s}s, thr=${meta.match_threshold}`;
         countsInfoEl.textContent = `Pairs: ${msg.pairs?.length || 0} | Unmatched ARPA: ${msg.unmatched_arpa?.length || 0} | Unmatched AIS: ${msg.unmatched_ais?.length || 0}`;
       }
 
@@ -526,59 +405,6 @@
         const mPerDegLat = 111320.0;
         const mPerDegLon = 111320.0 * Math.cos((site_lat || 0) * Math.PI / 180);
 
-        // Extract camera position from message_listener
-        let cameraPt = null;
-        let fovPolygon = null;
-        if (msg.message_listener) {
-          try {
-            const listenerMsg = typeof msg.message_listener === 'string' 
-              ? JSON.parse(msg.message_listener) 
-              : msg.message_listener;
-            
-            if (listenerMsg.type === 'FeatureCollection' && listenerMsg.features) {
-              for (const feature of listenerMsg.features) {
-                const props = feature.properties || {};
-                
-                // Extract camera point
-                if (props.type === 'camera' && feature.geometry && feature.geometry.type === 'Point') {
-                  const coords = feature.geometry.coordinates;
-                  if (coords && coords.length >= 2) {
-                    const cam_lon = coords[0];
-                    const cam_lat = coords[1];
-                    const cam_bearing = props.bearing || 0;
-                    if (Number.isFinite(cam_lat) && Number.isFinite(cam_lon)) {
-                      const x = (cam_lon - site_lon) * mPerDegLon;
-                      const y = (cam_lat - site_lat) * mPerDegLat;
-                      cameraPt = { x, y, bearing: cam_bearing, height: props.camera_height_m || 0 };
-                    }
-                  }
-                }
-                
-                // Extract FOV polygon
-                if (props.type === 'visible_sea_area' && feature.geometry && feature.geometry.type === 'Polygon') {
-                  const coords = feature.geometry.coordinates;
-                  if (coords && coords.length > 0) {
-                    const ring = coords[0]; // Outer ring
-                    const polyPts = [];
-                    for (const [lon, lat] of ring) {
-                      if (Number.isFinite(lat) && Number.isFinite(lon)) {
-                        const x = (lon - site_lon) * mPerDegLon;
-                        const y = (lat - site_lat) * mPerDegLat;
-                        polyPts.push({ x, y });
-                      }
-                    }
-                    if (polyPts.length > 0) {
-                      fovPolygon = { points: polyPts, bearing: props.bearing || 0, zoom: props.zoom || 1 };
-                    }
-                  }
-                }
-              }
-            }
-          } catch (err) {
-            console.warn('Could not extract camera/FOV data:', err);
-          }
-        }
-
         const arpaPts = [];
         const aisPts = [];
         for (const p of pairs) {
@@ -597,22 +423,12 @@
         }
 
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        const allPts = [...arpaPts, ...aisPts];
-        
-        // Add camera point and FOV polygon to bounds
-        if (cameraPt) allPts.push(cameraPt);
-        if (fovPolygon) {
-          for (const pt of fovPolygon.points) {
-            allPts.push(pt);
-          }
-        }
-        
+        const allPts = arpaPts.concat(aisPts);
         if (allPts.length === 0) {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           drawSite(canvas, ctx);
           return;
         }
-        
         for (const pt of allPts) {
           minX = Math.min(minX, pt.x);
           maxX = Math.max(maxX, pt.x);
@@ -632,13 +448,8 @@
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawGrid(canvas, ctx);
+        drawSite(canvas, ctx);
 
-        // Draw FOV polygon first (background)
-        if (fovPolygon && fovPolygon.points.length > 0) {
-          drawFovPolygon(ctx, fovPolygon.points.map(pt => ({ x: mapX(pt.x), y: mapY(pt.y) })));
-        }
-
-        // Draw matching links
         ctx.lineWidth = 1.0;
         for (let i = 0; i < pairs.length; i++) {
           const ap = arpaPts[i];
@@ -651,14 +462,8 @@
           ctx.stroke();
         }
 
-        // Draw ARPA and AIS points
         for (const ap of arpaPts) drawPoint(ctx, mapX(ap.x), mapY(ap.y), '#ff8c00');
         for (const ip of aisPts) drawPoint(ctx, mapX(ip.x), mapY(ip.y), '#2b6cb0');
-
-        // Draw camera last (foreground)
-        if (cameraPt) {
-          drawCamera(ctx, mapX(cameraPt.x), mapY(cameraPt.y), cameraPt.bearing);
-        }
       }
 
       function initMap(meta) {
@@ -674,8 +479,6 @@
             style: (f) => {
               const p = f.properties || {};
               const kind = p.kind;
-              if (kind === 'camera_point') return { color: '#22c55e', weight: 2, fillColor: '#22c55e', fillOpacity: 0.9 };
-              if (kind === 'fov_polygon') return { color: '#4285f4', weight: 2.5, fillColor: '#4285f4', fillOpacity: 0.15, dashArray: '5,5' };
               if (kind === 'link') {
                 const s = Number(p.score);
                 const color = scoreColor(Number.isFinite(s) ? s : 0.0);
@@ -694,29 +497,15 @@
               const score = p.score;
               let content = `${kind} ${id}`;
               if (typeof score === 'number') content += `<br>Score: ${score.toFixed(2)}`;
-              if (kind === 'CAMERA_POINT') {
-                content = `📹 Camera<br>Bearing: ${p.bearing}°<br>Height: ${p.height}m`;
-              }
-              if (kind === 'FOV_POLYGON') {
-                content = `Camera FOV<br>Bearing: ${p.bearing}°<br>Zoom: ${p.zoom}x`;
-              }
               layer.bindPopup(content);
             },
             pointToLayer: (feature, latlng) => {
               const kind = feature.properties && feature.properties.kind;
               let color = '#888';
-              let radius = 5;
-              if (kind === 'camera_point') {
-                color = '#22c55e';
-                radius = 8;
-              } else if (kind === 'ais') {
-                color = '#2b6cb0';
-              } else if (kind === 'arpa') {
-                color = '#ff8c00';
-              } else if (kind === 'arpa_unmatched') {
-                color = '#d00000';
-              }
-              return L.circleMarker(latlng, { radius, color, fillColor: color, fillOpacity: 0.9 });
+              if (kind === 'ais') color = '#2b6cb0';
+              else if (kind === 'arpa') color = '#ff8c00';
+              else if (kind === 'arpa_unmatched') color = '#d00000';
+              return L.circleMarker(latlng, { radius: 5, color, fillColor: color, fillOpacity: 0.9 });
             }
           }).addTo(map);
           realtime.update = function(fc) {
@@ -731,6 +520,20 @@
 
         if (meta && Number.isFinite(meta.site_lat) && Number.isFinite(meta.site_lon)) {
           const latlng = [meta.site_lat, meta.site_lon];
+          if (!siteMarker) {
+            siteMarker = L.marker(latlng, { title: 'Site' }).addTo(map);
+          } else {
+            siteMarker.setLatLng(latlng);
+          }
+          if (Number.isFinite(meta.filter_radius_km) && meta.filter_radius_km > 0) {
+            const rMeters = meta.filter_radius_km * 1000;
+            if (!siteCircle) {
+              siteCircle = L.circle(latlng, { radius: rMeters, color: '#aa0000', fill: false }).addTo(map);
+            } else {
+              siteCircle.setLatLng(latlng);
+              siteCircle.setRadius(rMeters);
+            }
+          }
           if (!lastMeta || lastMeta.site_lat !== meta.site_lat || lastMeta.site_lon !== meta.site_lon) {
             map.setView(latlng, 12);
           }
@@ -743,52 +546,6 @@
         const pairs = msg.pairs || [];
         const features = [];
         const isNum = (v) => Number.isFinite(Number(v));
-
-        // Add camera FOV polygon from message_listener if available
-        if (msg.message_listener) {
-          try {
-            const listenerMsg = typeof msg.message_listener === 'string' 
-              ? JSON.parse(msg.message_listener) 
-              : msg.message_listener;
-            
-            if (listenerMsg.type === 'FeatureCollection' && listenerMsg.features) {
-              for (const feature of listenerMsg.features) {
-                const props = feature.properties || {};
-                
-                // Add camera point marker
-                if (props.type === 'camera' && feature.geometry && feature.geometry.type === 'Point') {
-                  features.push({
-                    type: 'Feature',
-                    geometry: feature.geometry,
-                    properties: { 
-                      kind: 'camera_point', 
-                      fid: 'camera_marker',
-                      bearing: props.bearing,
-                      zoom: props.zoom,
-                      height: props.camera_height_m
-                    }
-                  });
-                }
-                
-                // Add FOV polygon
-                if (props.type === 'visible_sea_area' && feature.geometry) {
-                  features.push({
-                    type: 'Feature',
-                    geometry: feature.geometry,
-                    properties: { 
-                      kind: 'fov_polygon', 
-                      fid: 'camera_fov',
-                      bearing: props.bearing,
-                      zoom: props.zoom
-                    }
-                  });
-                }
-              }
-            }
-          } catch (err) {
-            console.warn('Could not parse message_listener:', err);
-          }
-        }
 
         const mPerDegLat = 111320.0;
         const mPerDegLon = (lat) => 111320.0 * Math.cos(Number(lat) * Math.PI / 180);
@@ -923,78 +680,6 @@
         ctx.fill();
       }
 
-      function drawFovPolygon(ctx, points) {
-        if (points.length < 2) return;
-        
-        // Draw FOV polygon fill
-        ctx.fillStyle = 'rgba(66, 133, 244, 0.15)';
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, points[0].y);
-        for (let i = 1; i < points.length; i++) {
-          ctx.lineTo(points[i].x, points[i].y);
-        }
-        ctx.closePath();
-        ctx.fill();
-        
-        // Draw FOV polygon border
-        ctx.strokeStyle = '#4285f4';
-        ctx.lineWidth = 2.0;
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, points[0].y);
-        for (let i = 1; i < points.length; i++) {
-          ctx.lineTo(points[i].x, points[i].y);
-        }
-        ctx.closePath();
-        ctx.stroke();
-      }
-
-      function drawCamera(ctx, x, y, bearing) {
-        // Draw camera symbol with bearing indicator
-        const bearingRad = (bearing * Math.PI / 180);
-        
-        // Draw camera circle
-        ctx.fillStyle = '#22c55e';
-        ctx.beginPath();
-        ctx.arc(x, y, 6, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Draw bearing direction line (cone from camera)
-        ctx.strokeStyle = '#22c55e';
-        ctx.lineWidth = 2.0;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        const lineLen = 25;
-        ctx.lineTo(
-          x + lineLen * Math.sin(bearingRad),
-          y - lineLen * Math.cos(bearingRad)
-        );
-        ctx.stroke();
-        
-        // Draw FOV cone edges (45 degree half-angle)
-        const fovHalfAngle = 45 * Math.PI / 180;
-        ctx.strokeStyle = 'rgba(34, 197, 94, 0.5)';
-        ctx.lineWidth = 1.0;
-        
-        const leftAngle = bearingRad - fovHalfAngle;
-        const rightAngle = bearingRad + fovHalfAngle;
-        
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(
-          x + lineLen * Math.sin(leftAngle),
-          y - lineLen * Math.cos(leftAngle)
-        );
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(
-          x + lineLen * Math.sin(rightAngle),
-          y - lineLen * Math.cos(rightAngle)
-        );
-        ctx.stroke();
-      }
-
       function drawSite(canvas, ctx) {
         const cx = canvas.width / 2;
         const cy = canvas.height / 2;
@@ -1025,108 +710,9 @@
         }
       }
 
-      // Listener control functions
-      function startListener() {
-        log('Starting listener...', 'info');
-        fetch('/listener/start', { method: 'POST' })
-          .then(response => response.json())
-          .then(data => {
-            log('Listener started: ' + data.message, 'success');
-            refreshListenerStatus();
-          })
-          .catch(error => {
-            log('Failed to start listener: ' + error.message, 'error');
-          });
-      }
-
-      function stopListener() {
-        log('Stopping listener...', 'info');
-        fetch('/listener/stop', { method: 'POST' })
-          .then(response => response.json())
-          .then(data => {
-            log('Listener stopped: ' + data.message, 'success');
-            refreshListenerStatus();
-          })
-          .catch(error => {
-            log('Failed to stop listener: ' + error.message, 'error');
-          });
-      }
-
-      function refreshListenerStatus() {
-        fetch('/listener/status')
-          .then(response => response.json())
-          .then(status => {
-            document.getElementById('listener-active').textContent = status.is_active ? '✅ Yes' : '❌ No';
-            document.getElementById('listener-running').textContent = status.is_running ? '✅ Yes' : '❌ No';
-            document.getElementById('listener-connection').textContent = status.connection_status || 'unknown';
-            
-            const startBtn = document.getElementById('start-listener-btn');
-            const stopBtn = document.getElementById('stop-listener-btn');
-            if (status.is_active) {
-              startBtn.disabled = true;
-              stopBtn.disabled = false;
-            } else {
-              startBtn.disabled = false;
-              stopBtn.disabled = true;
-            }
-          })
-          .catch(error => {
-            log('Failed to get listener status: ' + error.message, 'warning');
-          });
-      }
-
-      function fetchCacheStats() {
-        fetch('/cache/stats')
-          .then(response => response.json())
-          .then(stats => {
-            const aisCount = stats.ais_count || 0;
-            const arpaCount = stats.arpa_count || 0;
-            const totalCount = aisCount + arpaCount;
-            
-            document.getElementById('cache-ais').textContent = aisCount.toLocaleString();
-            document.getElementById('cache-arpa').textContent = arpaCount.toLocaleString();
-            document.getElementById('cache-total').textContent = totalCount.toLocaleString();
-          })
-          .catch(error => {
-            console.error('Failed to fetch cache stats:', error);
-          });
-      }
-
-      function log(message, type) {
-        type = type || 'info';
-        const logContainer = document.getElementById('log-container');
-        const entry = document.createElement('div');
-        entry.className = 'log-entry ' + type;
-        const time = new Date().toLocaleTimeString();
-        entry.textContent = '[' + time + '] ' + message;
-        
-        logContainer.insertBefore(entry, logContainer.firstChild);
-        
-        // Keep only last 50 entries
-        while (logContainer.children.length > 50) {
-          logContainer.removeChild(logContainer.lastChild);
-        }
-        
-        // Auto-scroll to top
-        logContainer.scrollTop = 0;
-      }
-
-      // Make functions globally available
-      window.startListener = startListener;
-      window.stopListener = stopListener;
-
-      // Auto-connect on load + init listener status
+      // Auto-connect on load
       window.addEventListener('load', () => {
-        log('Monitor initialized', 'info');
         connect();
-        refreshListenerStatus();
-        fetchCacheStats();
-        
-        // Refresh status every 5 seconds
-        // setInterval(() => {
-        //  refreshListenerStatus();
-        //  fetchCacheStats();
-        // }, 5000);
       });
     })();
   </script>

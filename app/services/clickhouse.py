@@ -1,12 +1,12 @@
 """ClickHouse service for database operations."""
 
-from typing import Any, List, Optional
-from clickhouse_driver import Client
+from typing import Any, List, Optional, Dict
+import clickhouse_connect
 from app.core.config import settings
 
 
 class ClickHouseService:
-    """Service for interacting with ClickHouse database."""
+    """Service for interacting with ClickHouse database via clickhouse_connect."""
     
     def __init__(self):
         """Initialize ClickHouse service."""
@@ -15,21 +15,28 @@ class ClickHouseService:
         self.database = settings.CLICKHOUSE_DATABASE
         self.user = settings.CLICKHOUSE_USER
         self.password = settings.CLICKHOUSE_PASSWORD
-        self._client: Optional[Client] = None
+        self._client = None
     
-    def get_client(self) -> Client:
+    def get_client(self):
         """Get or create ClickHouse client."""
         if self._client is None:
-            self._client = Client(
-                host=self.host,
-                port=self.port,
-                database=self.database,
-                user=self.user,
-                password=self.password
-            )
+            try:
+                print(f"🔌 Connecting to ClickHouse: {self.host}:{self.port}/{self.database}")
+                self._client = clickhouse_connect.get_client(
+                    host=self.host,
+                    port=self.port,
+                    database=self.database,
+                    username=self.user,
+                    password=self.password
+                )
+                print("✓ ClickHouse connection established")
+            except Exception as e:
+                print(f"❌ Failed to connect to ClickHouse: {e}")
+                self._client = None
+        
         return self._client
     
-    def execute_query(self, query: str) -> Optional[List[Any]]:
+    def execute_query(self, query: str) -> Optional[List[Dict[str, Any]]]:
         """
         Execute a query on ClickHouse.
         
@@ -41,10 +48,32 @@ class ClickHouseService:
         """
         try:
             client = self.get_client()
-            result = client.execute(query)
-            return result
+            if client is None:
+                print("❌ ClickHouse client is not available")
+                return None
+            
+            print(f"⚙️ Executing query: {query[:100]}...")
+            
+            # Execute query and get results as list of dicts
+            result = client.query(query)
+            rows = result.result_rows
+            columns = result.column_names
+            
+            # Convert to list of dicts
+            results = []
+            for row in rows:
+                row_dict = dict(zip(columns, row))
+                results.append(row_dict)
+            
+            print(f"✓ Query executed successfully, returned {len(results)} rows")
+            return results
+            
         except Exception as e:
-            print(f"Error executing ClickHouse query: {e}")
+            print(f"❌ Error executing ClickHouse query: {e}")
+            import traceback
+            traceback.print_exc()
+            # Reset client on error
+            self._client = None
             return None
     
     def test_connection(self) -> bool:
@@ -55,17 +84,29 @@ class ClickHouseService:
             True if connection successful, False otherwise
         """
         try:
+            print(f"🔌 Testing ClickHouse connection: {self.host}:{self.port}/{self.database}")
+            
             client = self.get_client()
-            client.execute("SELECT 1")
+            if client is None:
+                return False
+            
+            result = client.query("SELECT 1 as test")
+            print("✓ ClickHouse connection test passed")
             return True
+            
         except Exception as e:
-            print(f"ClickHouse connection test failed: {e}")
+            print(f"❌ ClickHouse connection test failed: {e}")
+            self._client = None
             return False
     
     def close(self):
         """Close ClickHouse connection."""
         if self._client:
-            self._client.disconnect()
+            try:
+                self._client.close()
+                print("✓ ClickHouse connection closed")
+            except Exception as e:
+                print(f"⚠️ Error closing ClickHouse connection: {e}")
             self._client = None
 
 

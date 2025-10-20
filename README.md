@@ -44,7 +44,33 @@ listener-projection-bpp/
 
 ## 🚀 Quick Start (Recommended)
 
-### Option 1: Use Startup Scripts (Easiest)
+### Option 1: Test with Local WebSocket Simulator (Easiest)
+
+**Windows (Command Prompt):**
+```cmd
+start_local_monitoring.bat
+```
+
+**Windows (PowerShell):**
+```powershell
+.\start_local_monitoring.ps1
+```
+
+This will:
+- ✅ Start FastAPI Listener on port 8000
+- ✅ Start WebSocket Simulator on port 8001
+- ✅ Open interactive test client
+- ✅ Launch monitor dashboard in browser
+- ✅ Ready to send test polygon queries
+
+**Then in the test client window, enter:**
+```
+119.3 -8.6 119.5 -8.6 119.5 -8.4 119.3 -8.4 119.3 -8.6
+```
+
+See [QUICKSTART.md](QUICKSTART.md) for more test polygons and details.
+
+### Option 2: Use Startup Scripts (For production setup)
 
 **Windows (Command Prompt):**
 ```cmd
