@@ -24,7 +24,7 @@ except ImportError:
     HAS_MATCHING = False
     
     
-POLYGON_DEBUG_LISTEN=True
+POLYGON_DEBUG_LISTEN=False
 POLYGON_DEBUG_LISTEN_GEOM=[
         [
             [
