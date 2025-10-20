@@ -25,30 +25,30 @@ except ImportError:
     
     
 POLYGON_DEBUG_LISTEN=True
-# POLYGON_DEBUG_LISTEN_GEOM=[
-#         [
-#             [
-#                 116.44933178566555,
-#                 -0.8430916258939618
-#             ],
-#             [
-#                 116.44933178566555,
-#                 -2.826198539872806
-#             ],
-#             [
-#                 118.69607870265867,
-#                 -2.826198539872806
-#             ],
-#             [
-#                 118.69607870265867,
-#                 -0.8430916258939618
-#             ],
-#             [
-#                 116.44933178566555,
-#                 -0.8430916258939618
-#             ]
-#         ]
-#     ]
+POLYGON_DEBUG_LISTEN_GEOM=[
+        [
+            [
+                116.44933178566555,
+                -0.8430916258939618
+            ],
+            [
+                116.44933178566555,
+                -2.826198539872806
+            ],
+            [
+                118.69607870265867,
+                -2.826198539872806
+            ],
+            [
+                118.69607870265867,
+                -0.8430916258939618
+            ],
+            [
+                116.44933178566555,
+                -0.8430916258939618
+            ]
+        ]
+    ]
 
 class DateTimeEncoder(json.JSONEncoder):
     """JSON encoder that handles datetime objects."""
@@ -296,50 +296,50 @@ class WebSocketListener:
                     
                     while self.is_active and self.is_running:
                         print(f"📢 Polygon debug listen active - sending mock data")
-                        # mock_message = json.dumps({
-                        #     "type": "FeatureCollection",
-                        #     "features": [
-                        #         {
-                        #             "type": "Feature",
-                        #             "properties": {
-                        #                 "name": "Camera Position",
-                        #                 "type": "camera",
-                        #                 "bearing": 270,
-                        #                 "zoom": 30,
-                        #                 "camera_height_m": 30
-                        #             },
-                        #             "geometry": {
-                        #                 "type": "Point",
-                        #                 "coordinates": [
-                        #                     116.809655,
-                        #                     -1.279656
-                        #                 ]
-                        #             }
-                        #         },
-                        #         {
-                        #             "type": "Feature",
-                        #             "properties": {
-                        #                 "type": "visible_sea_area",
-                        #                 "bearing": 45,
-                        #                 "zoom": 10
-                        #             },
-                        #             "geometry": {
-                        #                 "type": "Polygon",
-                        #                 "coordinates": POLYGON_DEBUG_LISTEN_GEOM
-                        #             }
-                        #         }
-                        #     ]
-                        # })
-                        # await self.process_message(mock_message)
-                        # await asyncio.sleep(5)
-                        demo_message = self.load_demo_message()
-                        if demo_message:
-                            print("📨 Processing demo message from demo_message.json")
-                            await self.process_message(demo_message)
-                            await asyncio.sleep(5)
-                        else:
-                            print("Failed to load demo message, stopping listener")
-                            break
+                        mock_message = json.dumps({
+                            "type": "FeatureCollection",
+                            "features": [
+                                {
+                                    "type": "Feature",
+                                    "properties": {
+                                        "name": "Camera Position",
+                                        "type": "camera",
+                                        "bearing": 270,
+                                        "zoom": 30,
+                                        "camera_height_m": 30
+                                    },
+                                    "geometry": {
+                                        "type": "Point",
+                                        "coordinates": [
+                                            116.809655,
+                                            -1.279656
+                                        ]
+                                    }
+                                },
+                                {
+                                    "type": "Feature",
+                                    "properties": {
+                                        "type": "visible_sea_area",
+                                        "bearing": 45,
+                                        "zoom": 10
+                                    },
+                                    "geometry": {
+                                        "type": "Polygon",
+                                        "coordinates": POLYGON_DEBUG_LISTEN_GEOM
+                                    }
+                                }
+                            ]
+                        })
+                        await self.process_message(mock_message)
+                        await asyncio.sleep(5)
+                        # demo_message = self.load_demo_message()
+                        # if demo_message:
+                        #     print("📨 Processing demo message from demo_message.json")
+                        #     await self.process_message(demo_message)
+                        #     await asyncio.sleep(5)
+                        # else:
+                        #     print("Failed to load demo message, stopping listener")
+                        #     break
                 else:
                     print(f"🔌 Connecting to WebSocket: {self.url}")
                     async with websockets.connect(self.url) as websocket:
